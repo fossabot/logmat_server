@@ -1,2 +1,4 @@
 venv/
 db.sqlite3
+logistica/__pycache__/
+logistica/bmp/__pycache__/
