@@ -1,7 +1,7 @@
 from django.contrib.auth.models import Group, User
 from rest_framework import serializers
 
-from logistica.bmp import models
+from material_carga import models
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -55,11 +55,6 @@ class CautelaSerializer(serializers.HyperlinkedModelSerializer):
             "usuario", "materials", "observacao",
             "data_emissao", "data_devolucao"
         ]
-
-    def validate(self, attrs):
-        for material in attrs['materials']:
-            if material.is_pending:
-                raise ValidationError('Material pendente')
 
 
 class ArquivoEntradaSerializer(serializers.ModelSerializer):
