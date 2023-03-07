@@ -1,10 +1,9 @@
 from django.contrib.auth.models import Group, User
+from django.shortcuts import get_object_or_404
 from rest_framework import permissions, viewsets
-import pandas as pd
 from material_carga import serializers
-from material_carga.models import (ArquivoEntrada, Cautela, Conta, Material,
-                                   Setor)
-from material_carga.serializers import ArquivoEntradaSerializer, GroupSerializer, UserSerializer
+from material_carga import models
+from material_carga.services import csv_service, user_service
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -12,8 +11,20 @@ class UserViewSet(viewsets.ModelViewSet):
     API endpoint that allows users to be viewed or edited.
     """
     queryset = User.objects.all().order_by('-date_joined')
-    serializer_class = UserSerializer
+    serializer_class = serializers.UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+
+class PerfilViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows users to be viewed or edited.
+    """
+    queryset = models.Perfil.objects.all()
+    serializer_class = serializers.PerfilSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request):
+        user_service.create_profile()
 
 
 class GroupViewSet(viewsets.ModelViewSet):
@@ -21,7 +32,7 @@ class GroupViewSet(viewsets.ModelViewSet):
     API endpoint that allows groups to be viewed or edited.
     """
     queryset = Group.objects.all()
-    serializer_class = GroupSerializer
+    serializer_class = serializers.GroupSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
@@ -29,7 +40,7 @@ class MaterialViewSet(viewsets.ModelViewSet):
     """
     API endpoint para Material
     """
-    queryset = Material.objects.all()
+    queryset = models.Material.objects.all()
     serializer_class = serializers.MaterialSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -38,7 +49,7 @@ class SetorViewSet(viewsets.ModelViewSet):
     """
     API endpoint para Setor
     """
-    queryset = Setor.objects.all()
+    queryset = models.Setor.objects.all()
     serializer_class = serializers.SetorSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -47,7 +58,7 @@ class ContaViewSet(viewsets.ModelViewSet):
     """
     API endpoint para Conta
     """
-    queryset = Conta.objects.all()
+    queryset = models.Conta.objects.all()
     serializer_class = serializers.ContaSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -57,62 +68,37 @@ class CautelaViewSet(viewsets.ModelViewSet):
     API endpoint para Cautela
     """
 
-    queryset = Cautela.objects.all()
+    queryset = models.Cautela.objects.all()
     serializer_class = serializers.CautelaSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def create(self, request, pk=None):
+        cautela = models.Cautela()
+        cautela.usuario = request.usuario
+        cautela.observacao = request.observacao
+        cautela.data_emissao = request.data_emisao
+
+        cautela.emprestimo_set = request.emprestimo_set
+
+        cautela.save()
+
+    def update(self, request, pk=None):
+        cautela = get_object_or_404(self.queryset, pk=pk)
+        cautela.data_devolucao = request.data_devolucao
+        cautela.is_pending = False
+
+
+class EmprestimoViewSet(viewsets.ModelViewSet):
+    queryset = models.Emprestimo.objects.all()
+    serializer_class = serializers.EmprestimoSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
 class ArquivoEntradaViewSet(viewsets.ModelViewSet):
-    queryset = ArquivoEntrada.objects.all()
+    queryset = models.ArquivoEntrada.objects.all()
     serializer_class = serializers.ArquivoEntradaSerializer
 
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
         file_name = request.data['file_data'].name  # type: ignore
-        self.update_database(file_name)
+        csv_service.update_database(file_name)
         return super().create(request, *args, **kwargs)
-  
-    def update_database(cls, csv_file):
-        file = pd.read_csv(
-            filepath_or_buffer=csv_file,
-            sep=';',
-            encoding='iso-8859-1')
-
-        for i in range(0, len(file)):
-            dependencia = file['DEPENDENCIA'][i]
-            if not isinstance(dependencia, str):
-                continue
-
-            conta_raw = file['CONTA'][i]
-            if not isinstance(conta_raw, str):
-                continue
-
-            try:
-                sigla, nome = Setor.format_dependencia(dependencia)
-                setor = Setor.objects.get_or_create(sigla=sigla, nome=nome)[0]
-
-                conta_numero, conta_nome = Conta.format_conta(conta_raw)
-                conta = Conta.objects.get_or_create(
-                    numero=conta_numero, nome=conta_nome)[0]
-                material = Material(
-                    setor=setor,
-                    conta=conta,
-                    n_bmp=int(file['Nº BMP'][i]),
-                    nomenclatura=file['NOMECLATURA/COMPONENTE'][i],
-                    n_serie=file['Nº SERIE'][i],
-                    vl_atualizado=float(
-                        0 if not isinstance(file['VL. ATUALIZ.'][i], str)
-                        else file['VL. ATUALIZ.'][i].replace(',', '.')
-                    ),
-                    vl_liquido=float(
-                        0 if not isinstance(file['VL. LIQUIDO'][i], str)
-                        else file['VL. LIQUIDO'][i].replace(',', '.')
-                    ),
-                    situacao=file['SITUACAO'][i]
-                )
-                material.save()
-            except IndexError:
-                print(f'Row {i} with invalid data.')
-            except Exception as exc:
-                print(f'line: {i}')
-                print(exc)
