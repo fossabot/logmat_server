@@ -1,5 +1,6 @@
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.utils import timezone
 
 
 class ArquivoEntrada(models.Model):
@@ -20,11 +21,9 @@ class Setor(models.Model):
         return (sigla, nome)
 
 
-class Perfil(models.Model):
-    user = models.OneToOneField(
-        User, on_delete=models.DO_NOTHING, related_name='perfil')
+class User(AbstractUser):
     matricula = models.CharField(max_length=7)
-    setor = models.ForeignKey(Setor, on_delete=models.DO_NOTHING)
+    setor = models.ForeignKey(Setor, on_delete=models.DO_NOTHING, null=True)
 
 
 class Conta(models.Model):
@@ -57,41 +56,66 @@ class Material(models.Model):
 
         return f'{self.n_bmp} - {self.nomenclatura}'
 
+    def is_from_usuario_setor(self, usuario):
+        return self.setor == usuario.setor
+
 
 class Cautela(models.Model):
-    Perfil = models.ForeignKey(Perfil, on_delete=models.DO_NOTHING)
+    class Meta:
+        permissions = [
+            ("gerenciar", "Can create, update, delete cautela")
+        ]
     observacao = models.CharField(max_length=100, null=True, default=None)
     data_emissao = models.DateField(auto_now_add=True, blank=True)
     data_baixa = models.DateField(null=True)
+    # Um usuário deve registrar o recebimento da cautela
+    cautelado = models.ForeignKey(User, on_delete=models.DO_NOTHING, null=True)
+    data_recebimento = models.DateField(null=True)
+
+    def set_data_recebimento(self, date=timezone.now().date()):
+        self.data_recebimento = date
 
 
 class Emprestimo(models.Model):
-    cautela = models.ForeignKey(Cautela, on_delete=models.DO_NOTHING)
+    cautela = models.ForeignKey(
+        Cautela, on_delete=models.DO_NOTHING, related_name='emprestimos')
     material = models.ForeignKey(
         Material, default=None, on_delete=models.DO_NOTHING)
     data_devolucao = models.DateField(null=True, blank=True)
 
 
-# class Processo(models.Model):
-#     titulo = models.CharField(max_length=50)
-#     nup = models.CharField(max_length=50)
+class Conferencia(models.Model):
+    
+    class Estado(models.IntegerChoices):
+        EM_USO = 1
+        INUTILIZADO_DANIFICADO = 2
+        OCIOSO = 3
+
+    material = models.ForeignKey(
+        Material, on_delete=models.DO_NOTHING)
+    conferente = models.ForeignKey(
+        User, on_delete=models.DO_NOTHING)
+    is_owner = models.BooleanField(default=False)
+    localizacao = models.ForeignKey(
+        Setor, on_delete=models.DO_NOTHING)
+    observacao = models.CharField(max_length=100, default='')
+    estado = models.IntegerField(choices=Estado.choices)
+
+    created = models.DateField(auto_now=True)
 
 
-# class Processo_Conferencia(Processo):
-#     # tipo = (ordinaria / extraordinaria)
-#     # comissao = (somente para ORDINARIA)
-#     # data_inicio
-#     # data_fim
-#     pass
+class Processo(models.Model):
 
+    class Tipo(models.IntegerChoices):
+        
+        CONFERENCIA_INTERNA = 1
+        CONFERENCIA_ANUAL = 2
+        INVENTARIO = 3
 
-# class Conferencia(models.Model):
-#     processo = models.ForeignKey(
-#         Processo_Conferencia, on_delete=models.DO_NOTHING)
-#     material = models.ForeignKey(
-#         Material, on_delete=models.DO_NOTHING)
-#     Perfil = models.ForeignKey(
-#         Perfil, on_delete=models.DO_NOTHING
-#     )
-#     parecer = models.CharField(max_length=100)
-#     imagem = models.FileField(blank=True, default='')
+    titulo = models.CharField(max_length=50)
+    nup = models.CharField(max_length=50)
+    tipo = models.IntegerField(choices=Tipo.choices)
+    data_inicio = models.DateField()
+    data_fim = models.DateField()
+    is_open = models.BooleanField(default=True)
+    conferencias = models.ManyToManyField(Conferencia)

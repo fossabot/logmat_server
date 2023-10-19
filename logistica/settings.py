@@ -25,8 +25,12 @@ SECRET_KEY = 'django-insecure-whcgc+0n9+-v#1v64(e5(qud9@w++pd8+qyl$__oj1-cowwp0y
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['192.168.88.93', '192.168.15.17', '127.0.0.1', 'localhost']
 
+INTERNAL_IPS = [
+    "127.0.0.1", 
+    "localhost",
+]
 
 # Application definition
 
@@ -37,19 +41,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_filters',
     'rest_framework',
-    'material_carga'
-
+    'rest_framework.authtoken',
+    'material_carga',
+    'django_extensions',
+    'debug_toolbar',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
+    # 'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'logistica.urls'
@@ -78,14 +86,36 @@ WSGI_APPLICATION = 'logistica.wsgi.application'
 
 DATABASES = {
     'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'postgres',
+        'USER': 'postgres',
+        'PASSWORD': '123456',
+        'HOST': 'localhost',
+        'PORT': '5432',
+    },
+    'sqlite': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 25,
+    'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework.authentication.TokenAuthentication',
+    ),
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.AllowAny',
+    )
+}
+
+CSRF_TRUSTED_ORIGINS = ['http://*.127.0.0.1']
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
+AUTH_USER_MODEL = 'material_carga.User'
 
 AUTH_PASSWORD_VALIDATORS = [
     {
