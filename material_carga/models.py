@@ -1,7 +1,12 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.dispatch import receiver
 from django.utils import timezone
 
+from django.conf import settings
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from rest_framework.authtoken.models import Token
 
 class ArquivoEntrada(models.Model):
     file_data = models.FileField(blank=True, default='')
@@ -25,6 +30,10 @@ class User(AbstractUser):
     matricula = models.CharField(max_length=7)
     setor = models.ForeignKey(Setor, on_delete=models.DO_NOTHING, null=True)
 
+    @receiver(post_save, sender=settings.AUTH_USER_MODEL)
+    def create_auth_token(sender, instance=None, created=False, **kwargs):
+        if created:
+            Token.objects.create(user=instance)
 
 class Conta(models.Model):
     numero = models.CharField(max_length=10, unique=True)

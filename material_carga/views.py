@@ -1,6 +1,7 @@
 from django.contrib.auth.models import Group
 from rest_framework import permissions, viewsets, views, exceptions
 from rest_framework.response import Response
+from rest_framework.authentication import TokenAuthentication
 from django_filters.rest_framework import DjangoFilterBackend
 
 from material_carga import custom_permissions, serializers
@@ -9,14 +10,6 @@ from material_carga.models import (
     ArquivoEntrada, Cautela, Conferencia, Conta, Emprestimo, Material,
     Processo, Setor, User)
 from material_carga.services import csv_service
-
-from rest_framework.authentication import SessionAuthentication
-
-
-class CsrfExemptSessionAuthentication(SessionAuthentication):
-
-    def enforce_csrf(self, request):
-        return  # To not perform the csrf check previously happening
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -43,9 +36,11 @@ class MaterialViewSet(viewsets.ModelViewSet):
     """
     queryset = Material.objects.all()
     serializer_class = MaterialSerializer
-    # permission_classes = [permissions.IsAuthenticated]
     filter_backends = [DjangoFilterBackend]
     filterset_fields = ['n_bmp']
+    
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class SetorViewSet(viewsets.ModelViewSet):
@@ -120,8 +115,10 @@ class ProcessoViewSet(viewsets.ModelViewSet):
 
 class ConferenciaViewSet(viewsets.ModelViewSet):
     queryset = Conferencia.objects.all()
-    serializer_class = ConferenciaSerializer
-    # permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ConferenciaDeMaterial
+    
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = [permissions.IsAuthenticated]
 
 
 class ConferenciasPorMaterialViewSet(viewsets.ModelViewSet):
@@ -140,31 +137,34 @@ class ConferenciasPorMaterialViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class MateriaisConferidosViewSet(viewsets.ModelViewSet):
-    serializer_class = MaterialConferidoSerializer
+class ConferidosViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ConferenciaSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Conferencia.objects.prefetch_related('material')
 
     def list(self, request, *args, **kwargs):
-        setor_id = request.data.setor
         conferencias = self.get_queryset()\
             .filter(material__setor__sigla='SDSP')\
-            .filter(is_owner=True)
+            .filter(is_owner=True)\
+            .order_by('material__n_bmp')\
+            .distinct('material__n_bmp')
 
-        materiais_conferidos = [conf.material for conf in conferencias]
-
-        page = self.paginate_queryset(materiais_conferidos)
+        page = self.paginate_queryset(conferencias)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(materiais_conferidos, many=True)
+        serializer = self.get_serializer(conferencias, many=True)
         return Response(serializer.data)
 
 
-class MateriaisEncontradosViewSet(viewsets.ModelViewSet):
-    serializer_class = MaterialConferidoSerializer
+class EncontradosViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ConferenciaSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Conferencia.objects.prefetch_related('material')
@@ -176,34 +176,38 @@ class MateriaisEncontradosViewSet(viewsets.ModelViewSet):
 
         materiais_conferidos = [conf.material for conf in conf_completas]
 
-        conf_por_outros = self.get_queryset()\
+        encontrados_por_outros = self.get_queryset()\
             .filter(material__setor__sigla='SDSP')\
             .filter(is_owner=False)\
+            .order_by('material__n_bmp')\
+            .distinct('material__n_bmp')\
             .exclude(material__in=materiais_conferidos)
-
-        materiais_encontrados = [conf.material for conf in conf_por_outros]
-
-        page = self.paginate_queryset(materiais_encontrados)
+    
+        page = self.paginate_queryset(encontrados_por_outros)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
 
-        serializer = self.get_serializer(materiais_encontrados, many=True)
+        serializer = self.get_serializer(encontrados_por_outros, many=True)
         return Response(serializer.data)
 
 
-class MateriaisNaoEncontrados(viewsets.ModelViewSet):
-    serializer_class = MaterialConferidoSerializer
+class MateriaisNaoEncontrados(viewsets.ReadOnlyModelViewSet):
+    serializer_class = MaterialResumidoSerializer
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Conferencia.objects.prefetch_related('material')
 
     def list(self, request, *args, **kwargs):
+        
         conferencias = self.get_queryset()\
             .filter(material__setor__sigla='SDSP')
 
         nao_conferidos = Material.objects\
-            .exclude(id__in=conferencias.values('material__id'))
+            .exclude(id__in=conferencias.values('material__id'))\
+            .order_by('n_bmp')
 
         page = self.paginate_queryset(nao_conferidos)
         if page is not None:

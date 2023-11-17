@@ -1,5 +1,8 @@
-run:
-	python manage.py runserver 0.0.0.0:8000
+run: startDB
+	(\
+		. venv/bin/activate; \
+		python manage.py runserver 0.0.0.0:8000 \
+	)
 	
 configure: clean
 	python manage.py makemigrations material_carga
@@ -15,3 +18,9 @@ clean:
 
 database:
 	docker run --name logmatDB -e POSTGRES_PASSWORD=123456 -p 5432:5432 -d postgres
+
+startDB:
+	docker start logmatDB
+
+make activate:
+	. venv/bin/activate

@@ -18,10 +18,9 @@ router.register(r'recebe-cautela', views.CautelaRecebimentoViewSet, 'recebe-caut
 router.register(r'emprestimo', views.EmprestimoViewSet)
 router.register(r'processo', views.ProcessoViewSet)
 router.register(r'conferencia', views.ConferenciaViewSet, basename='conferencia')
-router.register(r'materiais-conferidos', views.MateriaisConferidosViewSet, 'materiais-conferidos')
-router.register(r'materiais-encontrados', views.MateriaisEncontradosViewSet, 'materiais-encontrados')
+router.register(r'conferidos', views.ConferidosViewSet, 'conferidos')
+router.register(r'encontrados', views.EncontradosViewSet, 'encontrados')
 router.register(r'nao-encontrados', views.MateriaisNaoEncontrados, 'nao-encontrados')
-router.register(r'conf-por-material', views.ConferenciasPorMaterialViewSet, 'conf-por-material')
 
 
 # Wire up our API using automatic URL routing.
@@ -30,7 +29,7 @@ urlpatterns = [
     path('', include(router.urls)),
     path('api-auth/',
          include('rest_framework.urls', namespace='rest_framework')),
-    path('auth/login/', obtain_auth_token, name='auth_user_login'),
+    path('login/', obtain_auth_token),
 ]
 
 

@@ -22,6 +22,12 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         return user
 
 
+class UsuarioResumidoSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'username']
+       
+
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Group
@@ -34,6 +40,14 @@ class SetorSerializer(serializers.ModelSerializer):
         fields = [
             "id", "sigla", "nome"
         ]
+
+class SetorResumidoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Setor
+        fields = [
+            "id", "sigla"
+        ]
+
 
 class ContaSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
@@ -58,7 +72,7 @@ class MaterialSerializer(serializers.ModelSerializer):
         ]
     setor = SetorSerializer()
 
-class MaterialConferidoSerializer(serializers.ModelSerializer):
+class MaterialResumidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Material
         fields = [
@@ -66,8 +80,6 @@ class MaterialConferidoSerializer(serializers.ModelSerializer):
             "n_bmp",
             "nomenclatura",
             "n_serie",
-            "vl_atualizado",
-            "vl_liquido",
         ]
     
 
@@ -145,15 +157,20 @@ class ConferenciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Conferencia
         fields = [
+            "id",
             "localizacao",
             "material",
             "conferente",
             "observacao",
             "estado"
         ]
+        
+    material = MaterialResumidoSerializer()
+    localizacao = SetorResumidoSerializer()
+    conferente = UsuarioResumidoSerializer()
 
 
-class ConferenciaDeMaterial(serializers.HyperlinkedModelSerializer):
+class ConferenciaDeMaterial(serializers.ModelSerializer):
     class Meta:
         model = models.Conferencia
         fields = [
@@ -163,13 +180,8 @@ class ConferenciaDeMaterial(serializers.HyperlinkedModelSerializer):
         ]
 
     def create(self, validated_data):
-
         conferente = serializers.CurrentUserDefault()
-
         conferencia = models.Conferencia(**validated_data)
-        conferencia.conferente = conferente
-
-        
         conferencia.save()
         return conferencia
 
