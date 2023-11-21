@@ -6,7 +6,6 @@ from rest_framework import serializers
 from material_carga import models
 from material_carga.services import cautela_service
 
-
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = get_user_model()
@@ -171,16 +170,24 @@ class ConferenciaSerializer(serializers.ModelSerializer):
 
 
 class ConferenciaDeMaterial(serializers.ModelSerializer):
+    conferente = serializers.HiddenField(default=serializers.CurrentUserDefault())
+    is_owner = serializers.HiddenField(default=False)
     class Meta:
         model = models.Conferencia
         fields = [
             "material",
             "observacao",
-            "estado"
+            "estado",
+            "conferente",
+            "localizacao",
+            "is_owner"
         ]
 
     def create(self, validated_data):
-        conferente = serializers.CurrentUserDefault()
+        conferente = self.context['request'].user
+        is_owner = validated_data['material'].setor == conferente.setor
+        validated_data['conferente'] = conferente
+        validated_data['is_owner'] = is_owner
         conferencia = models.Conferencia(**validated_data)
         conferencia.save()
         return conferencia

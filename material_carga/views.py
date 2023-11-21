@@ -3,6 +3,8 @@ from rest_framework import permissions, viewsets, views, exceptions
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
 
 from material_carga import custom_permissions, serializers
 from material_carga.serializers import *
@@ -21,6 +23,20 @@ class UserViewSet(viewsets.ModelViewSet):
     # permission_classes = [permissions.IsAuthenticated]
 
 
+class CustomAuthToken(ObtainAuthToken):
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,
+                                           context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user': {'username': user.username, 'id': user.pk},
+            'setor': {'nome': user.setor.nome, 'sigla': user.setor.sigla}
+        })
+    
 class GroupViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows groups to be viewed or edited.

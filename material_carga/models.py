@@ -35,6 +35,7 @@ class User(AbstractUser):
         if created:
             Token.objects.create(user=instance)
 
+
 class Conta(models.Model):
     numero = models.CharField(max_length=10, unique=True)
     nome = models.CharField(max_length=50)
