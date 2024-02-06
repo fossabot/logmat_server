@@ -6,7 +6,6 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 
-from material_carga import custom_permissions, serializers
 from material_carga.serializers import *
 from material_carga.models import (
     ArquivoEntrada, Cautela, Conferencia, Conta, Emprestimo, Material,
@@ -53,7 +52,7 @@ class MaterialViewSet(viewsets.ModelViewSet):
     queryset = Material.objects.all()
     serializer_class = MaterialSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['n_bmp']
+    filterset_fields = ['n_bmp', 'setor__sigla']
     
     authentication_classes = (TokenAuthentication,)
     permission_classes = [permissions.IsAuthenticated]
@@ -162,8 +161,9 @@ class ConferidosViewSet(viewsets.ReadOnlyModelViewSet):
         return Conferencia.objects.prefetch_related('material')
 
     def list(self, request, *args, **kwargs):
+        setor = request.query_params['setor']
         conferencias = self.get_queryset()\
-            .filter(material__setor__sigla='SDSP')\
+            .filter(material__setor__sigla=setor)\
             .filter(is_owner=True)\
             .order_by('material__n_bmp')\
             .distinct('material__n_bmp')
@@ -186,14 +186,15 @@ class EncontradosViewSet(viewsets.ReadOnlyModelViewSet):
         return Conferencia.objects.prefetch_related('material')
 
     def list(self, request, *args, **kwargs):
+        setor = request.query_params['setor']
         conf_completas = self.get_queryset()\
-            .filter(material__setor__sigla='SDSP')\
+            .filter(material__setor__sigla=setor)\
             .filter(is_owner=True)
 
         materiais_conferidos = [conf.material for conf in conf_completas]
 
         encontrados_por_outros = self.get_queryset()\
-            .filter(material__setor__sigla='SDSP')\
+            .filter(material__setor__sigla=setor)\
             .filter(is_owner=False)\
             .order_by('material__n_bmp')\
             .distinct('material__n_bmp')\
@@ -217,9 +218,9 @@ class MateriaisNaoEncontrados(viewsets.ReadOnlyModelViewSet):
         return Conferencia.objects.prefetch_related('material')
 
     def list(self, request, *args, **kwargs):
-        
+        setor = request.query_params['setor']
         conferencias = self.get_queryset()\
-            .filter(material__setor__sigla='SDSP')
+            .filter(material__setor__sigla=setor)
 
         nao_conferidos = Material.objects\
             .exclude(id__in=conferencias.values('material__id'))\
