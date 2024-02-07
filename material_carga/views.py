@@ -117,8 +117,8 @@ class ArquivoEntradaViewSet(viewsets.ModelViewSet):
     serializer_class = ArquivoEntradaSerializer
 
     def create(self, request, *args, **kwargs):
-        file_name = request.data['file_data'].name  # type: ignore
-        csv_service.update_database(file_name)
+        file_data = request.data['file_data'].file  # type: ignore
+        csv_service.update_database(file_data)
         return super().create(request, *args, **kwargs)
 
 
