@@ -1,6 +1,8 @@
 asgiref==3.6.0
 astroid==2.14.2
 autopep8==2.0.1
+black==24.1.1
+click==8.1.7
 dill==0.3.6
 Django==4.1.6
 django-debug-toolbar==4.3.0
@@ -15,7 +17,9 @@ mccabe==0.7.0
 mypy==1.0.0
 mypy-extensions==1.0.0
 numpy==1.24.2
+packaging==23.2
 pandas==1.5.3
+pathspec==0.12.1
 platformdirs==3.0.0
 psycopg2-binary==2.9.9
 pycodestyle==2.10.0
