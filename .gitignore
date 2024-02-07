@@ -1,5 +1,3 @@
 venv/
 db.sqlite3
-material_carga/logistica/__pycache__/
-material_carga/logistica/bmp/__pycache__/
-material_carga/__pycache__/__init__.cpython-310.pyc
+./logistica/__pycache__/
