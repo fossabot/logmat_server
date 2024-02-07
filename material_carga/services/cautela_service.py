@@ -1,4 +1,3 @@
-
 def close_all_emprestimos(cautela):
     """Atualiza a data_devolucao de todos os emprestimos
     de acordo com a data de baixa da Cautela
@@ -25,12 +24,13 @@ def close_requested_emprestimos(cautela, cautela_request):
     Returns:
         Cautela: Cautela atualizada
     """
-    for emprestimo_req in cautela_request.get('emprestimos', []):
+    for emprestimo_req in cautela_request.get("emprestimos", []):
         emprestimo = next(
-            emprestimo for emprestimo in cautela.emprestimos.all()
-            if emprestimo.id == emprestimo_req['id']
-            and not emprestimo.data_devolucao
+            emprestimo
+            for emprestimo in cautela.emprestimos.all()
+            if emprestimo.id == emprestimo_req["id"] and not emprestimo.data_devolucao
         )
         emprestimo.data_devolucao = emprestimo_req.get(
-            'data_devolucao', emprestimo.data_devolucao)
+            "data_devolucao", emprestimo.data_devolucao
+        )
         emprestimo.save()

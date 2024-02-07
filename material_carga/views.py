@@ -8,8 +8,16 @@ from rest_framework.authtoken.models import Token
 
 from material_carga.serializers import *
 from material_carga.models import (
-    ArquivoEntrada, Cautela, Conferencia, Conta, Emprestimo, Material,
-    Processo, Setor, User)
+    ArquivoEntrada,
+    Cautela,
+    Conferencia,
+    Conta,
+    Emprestimo,
+    Material,
+    Processo,
+    Setor,
+    User,
+)
 from material_carga.services import csv_service
 
 
@@ -17,6 +25,7 @@ class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
     """
+
     queryset = User.objects.all()
     serializer_class = UserSerializer
     # permission_classes = [permissions.IsAuthenticated]
@@ -25,21 +34,26 @@ class UserViewSet(viewsets.ModelViewSet):
 class CustomAuthToken(ObtainAuthToken):
 
     def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data,
-                                           context={'request': request})
+        serializer = self.serializer_class(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
-        user = serializer.validated_data['user']
+        user = serializer.validated_data["user"]
         token, created = Token.objects.get_or_create(user=user)
-        return Response({
-            'token': token.key,
-            'user': {'username': user.username, 'id': user.pk},
-            'setor': {'nome': user.setor.nome, 'sigla': user.setor.sigla}
-        })
-    
+        return Response(
+            {
+                "token": token.key,
+                "user": {"username": user.username, "id": user.pk},
+                "setor": {"nome": user.setor.nome, "sigla": user.setor.sigla},
+            }
+        )
+
+
 class GroupViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows groups to be viewed or edited.
     """
+
     queryset = Group.objects.all()
     serializer_class = GroupSerializer
     # permission_classes = [permissions.IsAuthenticated]
@@ -49,11 +63,12 @@ class MaterialViewSet(viewsets.ModelViewSet):
     """
     API endpoint para Material
     """
+
     queryset = Material.objects.all()
     serializer_class = MaterialSerializer
     filter_backends = [DjangoFilterBackend]
-    filterset_fields = ['n_bmp', 'setor__sigla']
-    
+    filterset_fields = ["n_bmp", "setor__sigla"]
+
     authentication_classes = (TokenAuthentication,)
     permission_classes = [permissions.IsAuthenticated]
 
@@ -62,6 +77,7 @@ class SetorViewSet(viewsets.ModelViewSet):
     """
     API endpoint para Setor
     """
+
     queryset = Setor.objects.all()
     serializer_class = SetorSerializer
     # permission_classes = [permissions.IsAuthenticated]
@@ -71,6 +87,7 @@ class ContaViewSet(viewsets.ModelViewSet):
     """
     API endpoint para Conta
     """
+
     queryset = Conta.objects.all()
     serializer_class = ContaSerializer
     # permission_classes = [permissions.IsAuthenticated]
@@ -87,8 +104,8 @@ class CautelaViewSet(viewsets.ModelViewSet):
     #     permissions.IsAuthenticated & custom_permissions.IsCautelado]
 
     def perform_create(self, serializer):
-        authenticated_user = serializer.context['request'].user
-        if authenticated_user.has_perm('gerenciar'):
+        authenticated_user = serializer.context["request"].user
+        if authenticated_user.has_perm("gerenciar"):
             serializer.save()
         else:
             raise exceptions.PermissionDenied
@@ -117,7 +134,7 @@ class ArquivoEntradaViewSet(viewsets.ModelViewSet):
     serializer_class = ArquivoEntradaSerializer
 
     def create(self, request, *args, **kwargs):
-        file_data = request.data['file_data'].file  # type: ignore
+        file_data = request.data["file_data"].file  # type: ignore
         csv_service.update_database(file_data)
         return super().create(request, *args, **kwargs)
 
@@ -131,7 +148,7 @@ class ProcessoViewSet(viewsets.ModelViewSet):
 class ConferenciaViewSet(viewsets.ModelViewSet):
     queryset = Conferencia.objects.all()
     serializer_class = ConferenciaDeMaterial
-    
+
     authentication_classes = (TokenAuthentication,)
     permission_classes = [permissions.IsAuthenticated]
 
@@ -144,8 +161,7 @@ class ConferenciasPorMaterialViewSet(viewsets.ModelViewSet):
         material_id = request.data.material
         # processo_id = request.data.processo
 
-        conferencias = self.get_queryset()\
-            .filter(material__n_bmp=material_id)
+        conferencias = self.get_queryset().filter(material__n_bmp=material_id)
         # .filter(processo__id=processo_id)
 
         serializer = self.get_serializer(conferencias, many=True)
@@ -158,15 +174,17 @@ class ConferidosViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Conferencia.objects.prefetch_related('material')
+        return Conferencia.objects.prefetch_related("material")
 
     def list(self, request, *args, **kwargs):
-        setor = request.query_params['setor']
-        conferencias = self.get_queryset()\
-            .filter(material__setor__sigla=setor)\
-            .filter(is_owner=True)\
-            .order_by('material__n_bmp')\
-            .distinct('material__n_bmp')
+        setor = request.query_params["setor"]
+        conferencias = (
+            self.get_queryset()
+            .filter(material__setor__sigla=setor)
+            .filter(is_owner=True)
+            .order_by("material__n_bmp")
+            .distinct("material__n_bmp")
+        )
 
         page = self.paginate_queryset(conferencias)
         if page is not None:
@@ -183,23 +201,27 @@ class EncontradosViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Conferencia.objects.prefetch_related('material')
+        return Conferencia.objects.prefetch_related("material")
 
     def list(self, request, *args, **kwargs):
-        setor = request.query_params['setor']
-        conf_completas = self.get_queryset()\
-            .filter(material__setor__sigla=setor)\
+        setor = request.query_params["setor"]
+        conf_completas = (
+            self.get_queryset()
+            .filter(material__setor__sigla=setor)
             .filter(is_owner=True)
+        )
 
         materiais_conferidos = [conf.material for conf in conf_completas]
 
-        encontrados_por_outros = self.get_queryset()\
-            .filter(material__setor__sigla=setor)\
-            .filter(is_owner=False)\
-            .order_by('material__n_bmp')\
-            .distinct('material__n_bmp')\
+        encontrados_por_outros = (
+            self.get_queryset()
+            .filter(material__setor__sigla=setor)
+            .filter(is_owner=False)
+            .order_by("material__n_bmp")
+            .distinct("material__n_bmp")
             .exclude(material__in=materiais_conferidos)
-    
+        )
+
         page = self.paginate_queryset(encontrados_por_outros)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
@@ -215,16 +237,15 @@ class MateriaisNaoEncontrados(viewsets.ReadOnlyModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Conferencia.objects.prefetch_related('material')
+        return Conferencia.objects.prefetch_related("material")
 
     def list(self, request, *args, **kwargs):
-        setor = request.query_params['setor']
-        conferencias = self.get_queryset()\
-            .filter(material__setor__sigla=setor)
+        setor = request.query_params["setor"]
+        conferencias = self.get_queryset().filter(material__setor__sigla=setor)
 
-        nao_conferidos = Material.objects\
-            .exclude(id__in=conferencias.values('material__id'))\
-            .order_by('n_bmp')
+        nao_conferidos = Material.objects.exclude(
+            id__in=conferencias.values("material__id")
+        ).order_by("n_bmp")
 
         page = self.paginate_queryset(nao_conferidos)
         if page is not None:

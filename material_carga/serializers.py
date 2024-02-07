@@ -6,17 +6,18 @@ from rest_framework import serializers
 from material_carga import models
 from material_carga.services import cautela_service
 
+
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['id', 'username', 'password', 'email', 'matricula', 'setor']
+        fields = ["id", "username", "password", "email", "matricula", "setor"]
         extra_kwargs = {
-            'password': {'write_only': True},
+            "password": {"write_only": True},
         }
 
     def create(self, validated_data):
         user = super().create(validated_data)
-        user.set_password(validated_data['password'])
+        user.set_password(validated_data["password"])
         user.save()
         return user
 
@@ -24,36 +25,31 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
 class UsuarioResumidoSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['id', 'username']
-       
+        fields = ["id", "username"]
+
 
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Group
-        fields = ['url', 'name']
+        fields = ["url", "name"]
 
 
 class SetorSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Setor
-        fields = [
-            "id", "sigla", "nome"
-        ]
+        fields = ["id", "sigla", "nome"]
+
 
 class SetorResumidoSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Setor
-        fields = [
-            "id", "sigla"
-        ]
+        fields = ["id", "sigla"]
 
 
 class ContaSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = models.Conta
-        fields = [
-            "numero", "nome"
-        ]
+        fields = ["numero", "nome"]
 
 
 class MaterialSerializer(serializers.ModelSerializer):
@@ -69,7 +65,9 @@ class MaterialSerializer(serializers.ModelSerializer):
             "vl_atualizado",
             "vl_liquido",
         ]
+
     setor = SetorSerializer()
+
 
 class MaterialResumidoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -80,15 +78,13 @@ class MaterialResumidoSerializer(serializers.ModelSerializer):
             "nomenclatura",
             "n_serie",
         ]
-    
+
 
 class EmprestimoSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = models.Emprestimo
-        fields = [
-            "id", "material", "data_devolucao"
-        ]
-        extra_kwargs = {'cautela': {'read_only': True}}
+        fields = ["id", "material", "data_devolucao"]
+        extra_kwargs = {"cautela": {"read_only": True}}
 
 
 class CautelaSerializer(serializers.HyperlinkedModelSerializer):
@@ -98,9 +94,14 @@ class CautelaSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = models.Cautela
         fields = [
-            "id", "observacao", "data_emissao", "data_baixa",
-            "data_recebimento", "emprestimos"
+            "id",
+            "observacao",
+            "data_emissao",
+            "data_baixa",
+            "data_recebimento",
+            "emprestimos",
         ]
+
     emprestimos = EmprestimoSerializer(many=True)
 
     def create(self, validated_data):
@@ -118,14 +119,12 @@ class CautelaSerializer(serializers.HyperlinkedModelSerializer):
         return cautela
 
     def update(self, instance, validated_data):
-        instance.data_baixa = validated_data.get(
-            'data_baixa', instance.data_baixa)
+        instance.data_baixa = validated_data.get("data_baixa", instance.data_baixa)
 
         if instance.data_baixa:
             cautela_service.close_all_emprestimos(instance)
         else:
-            cautela_service.close_requested_emprestimos(
-                instance, validated_data)
+            cautela_service.close_requested_emprestimos(instance, validated_data)
         instance.save()
 
         return instance
@@ -135,9 +134,8 @@ class CautelaRecebimentoSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Cautela
-        fields = [
-            "id", "cautelado", "data_recebimento", "emprestimos"
-        ]
+        fields = ["id", "cautelado", "data_recebimento", "emprestimos"]
+
     emprestimos = EmprestimoSerializer(many=True)
 
     def update(self, instance, validated_data):
@@ -149,21 +147,14 @@ class CautelaRecebimentoSerializer(serializers.ModelSerializer):
 class ArquivoEntradaSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.ArquivoEntrada
-        fields = ('file_data', )
+        fields = ("file_data",)
 
 
 class ConferenciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Conferencia
-        fields = [
-            "id",
-            "localizacao",
-            "material",
-            "conferente",
-            "observacao",
-            "estado"
-        ]
-        
+        fields = ["id", "localizacao", "material", "conferente", "observacao", "estado"]
+
     material = MaterialResumidoSerializer()
     localizacao = SetorResumidoSerializer()
     conferente = UsuarioResumidoSerializer()
@@ -172,6 +163,7 @@ class ConferenciaSerializer(serializers.ModelSerializer):
 class ConferenciaDeMaterial(serializers.ModelSerializer):
     conferente = serializers.HiddenField(default=serializers.CurrentUserDefault())
     is_owner = serializers.HiddenField(default=False)
+
     class Meta:
         model = models.Conferencia
         fields = [
@@ -180,14 +172,14 @@ class ConferenciaDeMaterial(serializers.ModelSerializer):
             "estado",
             "conferente",
             "localizacao",
-            "is_owner"
+            "is_owner",
         ]
 
     def create(self, validated_data):
-        conferente = self.context['request'].user
-        is_owner = validated_data['material'].setor == conferente.setor
-        validated_data['conferente'] = conferente
-        validated_data['is_owner'] = is_owner
+        conferente = self.context["request"].user
+        is_owner = validated_data["material"].setor == conferente.setor
+        validated_data["conferente"] = conferente
+        validated_data["is_owner"] = is_owner
         conferencia = models.Conferencia(**validated_data)
         conferencia.save()
         return conferencia
@@ -196,13 +188,8 @@ class ConferenciaDeMaterial(serializers.ModelSerializer):
 class RelatorioConferencia(serializers.ModelSerializer):
     class Meta:
         model = models.Conferencia
-        fields = [
-            "localizacao",
-            "material",
-            "conferente",
-            "observacao",
-            "estado"
-        ]
+        fields = ["localizacao", "material", "conferente", "observacao", "estado"]
+
 
 class ProcessoSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
