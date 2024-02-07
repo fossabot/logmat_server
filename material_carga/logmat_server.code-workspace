@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"editor.defaultFormatter": "ms-python.black-formatter",
+		"editor.defaultFoldingRangeProvider": null,
+		"python.missingPackage.severity": "Error"
+	}
+}
