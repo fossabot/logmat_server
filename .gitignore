@@ -140,3 +140,10 @@ GitHub.sublime-settings
 # ASDF 
 .tool-versions
 *.CSV
+/.vscode/extensions.json
+/.idea/logmat_server.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/vcs.xml
+/.idea/.gitignore
