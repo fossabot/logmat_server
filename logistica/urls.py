@@ -19,7 +19,6 @@ router.register(r"emprestimo", views.EmprestimoViewSet)
 router.register(r"processo", views.ProcessoViewSet)
 router.register(r"conferencia", views.ConferenciaViewSet, basename="conferencia")
 router.register(r"conferidos", views.ConferidosViewSet, "conferidos")
-router.register(r"encontrados", views.EncontradosViewSet, "encontrados")
 router.register(r"nao-encontrados", views.MateriaisNaoEncontrados, "nao-encontrados")
 
 
