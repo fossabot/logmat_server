@@ -1,5 +1,6 @@
 from django.contrib.auth.models import Group
 from rest_framework import permissions, viewsets, views, exceptions
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from django_filters.rest_framework import DjangoFilterBackend
@@ -151,6 +152,29 @@ class ConferenciaViewSet(viewsets.ModelViewSet):
 
     authentication_classes = (TokenAuthentication,)
     permission_classes = [permissions.IsAuthenticated]
+
+
+class PanelViewSet(viewsets.ViewSet):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = [permissions.IsAuthenticated]
+
+    def retrieve(self, request, pk=None):
+        sector = pk
+        material_qty = Material.objects.filter(setor__sigla=sector).count()
+
+        checks_qty = (
+            Conferencia.objects.prefetch_related("material")
+            .filter(material__setor__sigla=sector)
+            .order_by("material__n_bmp", "-is_owner")
+            .distinct("material__n_bmp")
+        ).count()
+        percentage_checked = int((checks_qty/material_qty)*100)
+        report = {
+            "material_qty": material_qty,
+            "percentage_checked": percentage_checked
+        }
+        serializer = PanelSerializer(report)
+        return Response(serializer.data)
 
 
 class ConferidosViewSet(viewsets.ReadOnlyModelViewSet):
