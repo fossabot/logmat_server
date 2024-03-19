@@ -191,6 +191,11 @@ class RelatorioConferencia(serializers.ModelSerializer):
         fields = ["localizacao", "material", "conferente", "observacao", "estado"]
 
 
+class PanelSerializer(serializers.Serializer):
+    material_qty = serializers.IntegerField()
+    percentage_checked = serializers.IntegerField()
+
+
 class ProcessoSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = models.Processo
