@@ -1,5 +1,6 @@
 from django.contrib.auth.models import Group
 from rest_framework import permissions, viewsets, views, exceptions
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from django_filters.rest_framework import DjangoFilterBackend
@@ -153,18 +154,26 @@ class ConferenciaViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
 
-class ConferenciasPorMaterialViewSet(viewsets.ModelViewSet):
-    queryset = Conferencia.objects.all()
-    serializer_class = ConferenciaSerializer
+class PanelViewSet(viewsets.ViewSet):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = [permissions.IsAuthenticated]
 
-    def list(self, request, *args, **kwargs):
-        material_id = request.data.material
-        # processo_id = request.data.processo
+    def retrieve(self, request, pk=None):
+        sector = pk
+        material_qty = Material.objects.filter(setor__sigla=sector).count()
 
-        conferencias = self.get_queryset().filter(material__n_bmp=material_id)
-        # .filter(processo__id=processo_id)
-
-        serializer = self.get_serializer(conferencias, many=True)
+        checks_qty = (
+            Conferencia.objects.prefetch_related("material")
+            .filter(material__setor__sigla=sector)
+            .order_by("material__n_bmp", "-is_owner")
+            .distinct("material__n_bmp")
+        ).count()
+        percentage_checked = int((checks_qty/material_qty)*100)
+        report = {
+            "material_qty": material_qty,
+            "percentage_checked": percentage_checked
+        }
+        serializer = PanelSerializer(report)
         return Response(serializer.data)
 
 
@@ -181,10 +190,10 @@ class ConferidosViewSet(viewsets.ReadOnlyModelViewSet):
         conferencias = (
             self.get_queryset()
             .filter(material__setor__sigla=setor)
-            .filter(is_owner=True)
-            .order_by("material__n_bmp")
+            .order_by("material__n_bmp", "-is_owner")
             .distinct("material__n_bmp")
         )
+        conferencias = sorted(conferencias, key=lambda conf: conf.is_owner)
 
         page = self.paginate_queryset(conferencias)
         if page is not None:
@@ -192,42 +201,6 @@ class ConferidosViewSet(viewsets.ReadOnlyModelViewSet):
             return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(conferencias, many=True)
-        return Response(serializer.data)
-
-
-class EncontradosViewSet(viewsets.ReadOnlyModelViewSet):
-    serializer_class = ConferenciaSerializer
-    authentication_classes = (TokenAuthentication,)
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Conferencia.objects.prefetch_related("material")
-
-    def list(self, request, *args, **kwargs):
-        setor = request.query_params["setor"]
-        conf_completas = (
-            self.get_queryset()
-            .filter(material__setor__sigla=setor)
-            .filter(is_owner=True)
-        )
-
-        materiais_conferidos = [conf.material for conf in conf_completas]
-
-        encontrados_por_outros = (
-            self.get_queryset()
-            .filter(material__setor__sigla=setor)
-            .filter(is_owner=False)
-            .order_by("material__n_bmp")
-            .distinct("material__n_bmp")
-            .exclude(material__in=materiais_conferidos)
-        )
-
-        page = self.paginate_queryset(encontrados_por_outros)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(encontrados_por_outros, many=True)
         return Response(serializer.data)
 
 
@@ -243,9 +216,12 @@ class MateriaisNaoEncontrados(viewsets.ReadOnlyModelViewSet):
         setor = request.query_params["setor"]
         conferencias = self.get_queryset().filter(material__setor__sigla=setor)
 
-        nao_conferidos = Material.objects.exclude(
-            id__in=conferencias.values("material__id")
-        ).order_by("n_bmp")
+        nao_conferidos = (
+            Material.objects
+                .filter(setor__sigla=setor)
+                .exclude(id__in=conferencias.values("material__id"))
+                .order_by("n_bmp")
+            )
 
         page = self.paginate_queryset(nao_conferidos)
         if page is not None:

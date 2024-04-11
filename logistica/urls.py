@@ -17,10 +17,11 @@ router.register(r"cautela", views.CautelaViewSet, "cautela")
 router.register(r"recebe-cautela", views.CautelaRecebimentoViewSet, "recebe-cautela")
 router.register(r"emprestimo", views.EmprestimoViewSet)
 router.register(r"processo", views.ProcessoViewSet)
-router.register(r"conferencia", views.ConferenciaViewSet, basename="conferencia")
+router.register(r"conferencia", views.ConferenciaViewSet, "conferencia")
 router.register(r"conferidos", views.ConferidosViewSet, "conferidos")
-router.register(r"encontrados", views.EncontradosViewSet, "encontrados")
 router.register(r"nao-encontrados", views.MateriaisNaoEncontrados, "nao-encontrados")
+router.register(r"panel", views.PanelViewSet, basename="panel")
+
 
 
 # Wire up our API using automatic URL routing.

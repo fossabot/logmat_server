@@ -153,7 +153,7 @@ class ArquivoEntradaSerializer(serializers.ModelSerializer):
 class ConferenciaSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Conferencia
-        fields = ["id", "localizacao", "material", "conferente", "observacao", "estado"]
+        fields = ["id", "localizacao", "material", "conferente", "observacao", "estado", "is_owner"]
 
     material = MaterialResumidoSerializer()
     localizacao = SetorResumidoSerializer()
@@ -189,6 +189,11 @@ class RelatorioConferencia(serializers.ModelSerializer):
     class Meta:
         model = models.Conferencia
         fields = ["localizacao", "material", "conferente", "observacao", "estado"]
+
+
+class PanelSerializer(serializers.Serializer):
+    material_qty = serializers.IntegerField()
+    percentage_checked = serializers.IntegerField()
 
 
 class ProcessoSerializer(serializers.HyperlinkedModelSerializer):
