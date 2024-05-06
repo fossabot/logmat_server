@@ -213,7 +213,7 @@ class MateriaisNaoEncontrados(viewsets.ReadOnlyModelViewSet):
         return Conferencia.objects.prefetch_related("material")
 
     def list(self, request, *args, **kwargs):
-        setor = request.query_params["setor"]
+        setor = request.query_params["setor_sigla"]
         conferencias = self.get_queryset().filter(material__setor__sigla=setor)
 
         nao_conferidos = (
