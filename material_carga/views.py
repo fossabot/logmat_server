@@ -4,6 +4,7 @@ from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.authentication import TokenAuthentication
 from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework.filters import SearchFilter
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
 
@@ -67,8 +68,9 @@ class MaterialViewSet(viewsets.ModelViewSet):
 
     queryset = Material.objects.all()
     serializer_class = MaterialSerializer
-    filter_backends = [DjangoFilterBackend]
-    filterset_fields = ["n_bmp", "setor__sigla"]
+    filter_backends = [DjangoFilterBackend, SearchFilter]
+    filterset_fields = ["setor__sigla"]
+    search_fields = ["n_bmp", "nomenclatura"]
 
     authentication_classes = (TokenAuthentication,)
     permission_classes = [permissions.IsAuthenticated]
@@ -213,7 +215,7 @@ class MateriaisNaoEncontrados(viewsets.ReadOnlyModelViewSet):
         return Conferencia.objects.prefetch_related("material")
 
     def list(self, request, *args, **kwargs):
-        setor = request.query_params["setor_sigla"]
+        setor = request.query_params["setor__sigla"]
         conferencias = self.get_queryset().filter(material__setor__sigla=setor)
 
         nao_conferidos = (
